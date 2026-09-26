@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>مدیریت فایل</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/sftp.css" />
+</head>
+<body>
+  <div id="sftp-app">
+    <div id="sftp-toolbar">
+      <button id="btnUp" class="btn btn-ghost btn-sm" title="رفتن به پوشه بالاتر">↑</button>
+      <button id="btnHome" class="btn btn-ghost btn-sm" title="پوشه خانه">خانه</button>
+      <div id="pathCrumb" class="path-crumb"></div>
+      <button id="btnRefresh" class="btn btn-ghost btn-sm" title="بارگذاری مجدد">⟳</button>
+      <button id="btnNewFolder" class="btn btn-ghost btn-sm">پوشه جدید</button>
+      <span class="toolbar-sep"></span>
+      <button id="btnDownload" class="btn btn-ghost btn-sm" title="دانلود مورد انتخابی" disabled>دانلود</button>
+      <button id="btnRename" class="btn btn-ghost btn-sm" title="تغییر نام مورد انتخابی" disabled>تغییر نام</button>
+      <button id="btnDelete" class="btn btn-ghost btn-sm danger" title="حذف مورد انتخابی" disabled>حذف</button>
+      <button id="btnUploadHere" class="btn btn-primary btn-sm">آپلود در اینجا</button>
+    </div>
+
+    <div id="sftp-body">
+      <div id="fileList" class="file-list"></div>
+    </div>
+
+    <div id="transferBar" class="transfer-bar hidden">
+      <div class="transfer-head">
+        <span id="transferTitle">در حال انتقال...</span>
+        <button id="btnClearTransfers" class="btn btn-ghost btn-sm">پاک کردن</button>
+      </div>
+      <div id="transferList" class="transfer-list"></div>
+    </div>
+
+    <div id="dropOverlay" class="drop-overlay hidden">
+      <div class="drop-inner">
+        <div class="drop-icon">⬇</div>
+        <div>فایل‌ها را رها کنید تا آپلود شوند</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/sftp.js"></script>
+</body>
+</html>

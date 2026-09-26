@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PersiaSSH</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar: server list -->
+    <aside id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">⌘</div>
+        <div class="brand-text">PersiaSSH</div>
+      </div>
+      <button id="btnNewServer" class="btn btn-primary btn-block">
+        <span>＋</span> سرور جدید
+      </button>
+      <div id="serverList" class="server-list"></div>
+      <div id="sidebarFooter" class="sidebar-footer">
+        <div class="theme-row">
+          <label for="themeSelect" class="theme-label">تم</label>
+          <select id="themeSelect" class="theme-select"></select>
+        </div>
+        <div class="footer-row">
+          <div class="status-dot" id="proxyHint"></div>
+          <span id="serverCount">۰ سرور</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main area: tabs + terminals -->
+    <main id="main">
+      <div id="tabBar" class="tab-bar hidden">
+        <div id="tabs" class="tabs"></div>
+        <button id="btnNewTab" class="tab-new" title="تب جدید">＋</button>
+      </div>
+      <div id="terminalArea" class="terminal-area">
+        <div id="welcome" class="welcome">
+          <div class="welcome-logo">⌘</div>
+          <h1>به PersiaSSH خوش آمدید</h1>
+          <p>یک سرور از منوی کناری انتخاب کنید یا سرور جدید اضافه کنید.</p>
+          <div class="welcome-hints">
+            <div class="hint"><span class="kbd">Ctrl</span>+<span class="kbd">N</span> — سرور جدید</div>
+            <div class="hint"><span class="kbd">Ctrl</span>+<span class="kbd">T</span> — تب ترمینال جدید</div>
+            <div class="hint"><span class="kbd">Ctrl</span>+<span class="kbd">W</span> — بستن تب</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Server modal -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal" id="serverModal">
+      <div class="modal-header">
+        <h2 id="modalTitle">سرور جدید</h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <form id="serverForm" class="modal-body">
+        <div class="form-row">
+          <label>نام سرور</label>
+          <input type="text" id="fName" placeholder="مثلاً: سرور اصلی" autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <label>آدرس سرور (IP یا دامنه)</label>
+          <input type="text" id="fHost" placeholder="192.168.1.1" autocomplete="off" dir="ltr" />
+        </div>
+        <div class="form-grid two">
+          <div class="form-row">
+            <label>پورت</label>
+            <input type="number" id="fPort" value="22" min="1" max="65535" dir="ltr" />
+          </div>
+          <div class="form-row">
+            <label>نام کاربری</label>
+            <input type="text" id="fUser" value="root" autocomplete="off" dir="ltr" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label>رمز عبور</label>
+          <div class="input-wrap">
+            <input type="password" id="fPass" placeholder="رمز عبور" autocomplete="new-password" dir="ltr" />
+            <button type="button" class="input-action" id="togglePass">👁</button>
+          </div>
+        </div>
+
+        <div class="form-divider">
+          <span>پراکسی (اختیاری)</span>
+        </div>
+        <div class="form-grid two">
+          <div class="form-row">
+            <label>نوع پراکسی</label>
+            <select id="fProxyType" dir="ltr">
+              <option value="">بدون پراکسی</option>
+              <option value="socks5">SOCKS5</option>
+              <option value="socks4">SOCKS4</option>
+              <option value="http">HTTP CONNECT</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>آدرس پراکسی</label>
+            <input type="text" id="fProxyHost" placeholder="127.0.0.1" autocomplete="off" dir="ltr" />
+          </div>
+        </div>
+        <div class="form-grid two">
+          <div class="form-row">
+            <label>پورت پراکسی</label>
+            <input type="number" id="fProxyPort" placeholder="1080" min="1" max="65535" dir="ltr" />
+          </div>
+          <div class="form-row">
+            <label>نام کاربری پراکسی (اختیاری)</label>
+            <input type="text" id="fProxyUser" autocomplete="off" dir="ltr" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label>رمز عبور پراکسی (اختیاری)</label>
+          <input type="password" id="fProxyPass" autocomplete="new-password" dir="ltr" />
+        </div>
+        <div id="formError" class="form-error"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="btnTest">تست اتصال</button>
+          <button type="button" class="btn btn-ghost" id="btnCancel">انصراف</button>
+          <button type="submit" class="btn btn-primary" id="btnSave">ذخیره</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="contextMenu" class="context-menu hidden"></div>
+
+  <script src="../node_modules/@xterm/xterm/lib/xterm.js"></script>
+  <script src="../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+  <script>
+    // the addon publishes itself on window under different names across builds
+    window.fitAddon = window.fitAddon || window.AddonFit || window.fit || {};
+  </script>
+  <script src="js/main.js"></script>
+</body>
+</html>

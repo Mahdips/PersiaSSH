@@ -1,0 +1,59 @@
+{
+  "name": "persiassh",
+  "version": "1.1.0",
+  "description": "Persian SSH client with multi-tab terminals, SFTP file manager, and SOCKS5/HTTP proxy support",
+  "main": "src/main.js",
+  "author": "Mahdi",
+  "license": "MIT",
+  "homepage": "https://github.com/Mahdips/PersiaSSH",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mahdips/PersiaSSH.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
+    "test": "node test/run_tests.js"
+  },
+  "dependencies": {
+    "socks": "^2.8.1",
+    "ssh2": "^1.16.0"
+  },
+  "devDependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.mahdi.persiassh",
+    "productName": "PersiaSSH",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "PersiaSSH-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "PersiaSSH-Portable-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "PersiaSSH"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "start.bat"
+    ]
+  }
+}
