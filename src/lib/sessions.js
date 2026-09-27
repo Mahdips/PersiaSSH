@@ -22,7 +22,11 @@ function fmtErr(err) {
  */
 function create({ id, serverId, cols = 100, rows = 30 }, emit) {
   const server = store.get(serverId);
-  if (!server) throw new Error('سرور یافت نشد');
+  if (!server) {
+    emit('status', id, 'error', 'سرور یافت نشد — ممکن است حذف شده باشد.');
+    sessions.delete(id);
+    return id;
+  }
 
   const conn = new Client();
   const session = { id, conn, stream: null, closed: false };

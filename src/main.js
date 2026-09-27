@@ -85,7 +85,11 @@ function buildMenu() {
 }
 
 app.whenReady().then(() => {
-  store.init();
+  try {
+    store.init();
+  } catch (err) {
+    console.error('[store] init failed, continuing with an empty store:', err.message);
+  }
   ipc.register({ getMainWindow: () => mainWindow });
   buildMenu();
   createMainWindow();

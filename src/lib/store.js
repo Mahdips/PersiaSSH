@@ -3,20 +3,40 @@ const path = require('path');
 const crypto = require('crypto');
 const { app, safeStorage } = require('electron');
 
-const STORE_FILE = path.join(storeDir(), 'servers.json');
-const KEY_FILE = path.join(storeDir(), 'master.key');
+let STORE_FILE = null;
+let KEY_FILE = null;
 
-let masterKey = null;
-
-/** app.getPath is only available inside Electron; fall back for tests/CLI. */
+/**
+ * app.getPath is only available inside Electron; fall back for tests/CLI.
+ * Resolved lazily so app.setPath('userData', ...) made after require() is honored.
+ */
 function storeDir() {
   try {
-    if (app?.getPath) return app.getPath('userData');
+    if (app?.getPath) {
+      const ud = app.getPath('userData');
+      if (ud) return ud;
+    }
   } catch {
-    /* not in electron */
+    /* not in electron yet */
   }
-  const base = process.env.APPDATA || process.env.HOME || process.env.TMPDIR || '/tmp';
+  // GUI processes on Windows may not inherit APPDATA — derive it from the user profile.
+  const base =
+    process.env.APPDATA ||
+    process.env.HOME ||
+    process.env.USERPROFILE ||
+    (process.env.HOMEDRIVE && process.env.HOMEPATH ? process.env.HOMEDRIVE + process.env.HOMEPATH : null) ||
+    process.env.TMPDIR ||
+    '/tmp';
   return path.join(base, 'persiassh');
+}
+
+function storeFile() {
+  if (!STORE_FILE) STORE_FILE = path.join(storeDir(), 'servers.json');
+  return STORE_FILE;
+}
+function keyFile() {
+  if (!KEY_FILE) KEY_FILE = path.join(storeDir(), 'master.key');
+  return KEY_FILE;
 }
 
 /** safeStorage is electron-only; fall back to a plain random key when absent. */
@@ -45,8 +65,8 @@ function randomBytes(n) {
  */
 function loadOrCreateMasterKey() {
   try {
-    if (fs.existsSync(KEY_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(KEY_FILE, 'utf8'));
+    if (fs.existsSync(keyFile())) {
+      const raw = JSON.parse(fs.readFileSync(keyFile(), 'utf8'));
       if (raw?.wrapped) {
         const plain = safeDecryptString(Buffer.from(raw.wrapped, 'base64'));
         masterKey = crypto.createHash('sha256').update(plain).digest();
@@ -59,7 +79,7 @@ function loadOrCreateMasterKey() {
 
   const plain = randomBytes(48);
   masterKey = crypto.createHash('sha256').update(plain).digest();
-  fs.writeFileSync(KEY_FILE, JSON.stringify({ wrapped: safeEncryptString(plain).toString('base64') }), {
+  fs.writeFileSync(keyFile(), JSON.stringify({ wrapped: safeEncryptString(plain).toString('base64') }), {
     mode: 0o600,
   });
   return masterKey;
@@ -93,7 +113,7 @@ let cache = null;
 function readAll() {
   if (cache) return cache;
   try {
-    cache = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
+    cache = JSON.parse(fs.readFileSync(storeFile(), 'utf8'));
   } catch {
     cache = [];
   }
@@ -102,9 +122,10 @@ function readAll() {
 
 function writeAll(list) {
   cache = list;
-  const tmp = STORE_FILE + '.tmp';
+  const sf = storeFile();
+  const tmp = sf + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(list, null, 2), { mode: 0o600 });
-  fs.renameSync(tmp, STORE_FILE);
+  fs.renameSync(tmp, sf);
 }
 
 function withDefaults(server) {

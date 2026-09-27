@@ -69,10 +69,13 @@ function createSshServer() {
         else ctx.reject(['password']);
       });
       client.on('ready', () => {
+        console.log('[MOCK] client ready');
         client.on('session', (accept) => {
+          console.log('[MOCK] session requested');
           const session = accept();
-          session.on('pty', (accept) => accept());
+          session.on('pty', (accept) => { console.log('[MOCK] pty'); accept(); });
           session.on('shell', (acc) => {
+            console.log('[MOCK] shell granted');
             const stream = acc();
             const prompt = () => stream.write(`testuser@mock:~$ `);
             let buf = '';

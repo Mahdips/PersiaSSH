@@ -1,5 +1,13 @@
-const { Terminal } = (window.xterm || window); // xterm UMD exposes Terminal directly on window
-const FitAddon = window.FitAddon?.FitAddon || window.fitAddon?.FitAddon || window.FitAddon || window.fitAddon;
+// xterm UMD exposes Terminal directly on window; guard against a missing bundle
+// so a packaging regression shows a clear message instead of a dead UI.
+const { Terminal } = (window.xterm || window);
+const FitAddon = window.fitAddon?.FitAddon || window.FitAddon?.FitAddon || window.fitAddon || window.FitAddon;
+if (typeof Terminal !== 'function') {
+  console.error('[PersiaSSH] xterm bundle failed to load — renderer scripts are dead.');
+}
+if (typeof FitAddon !== 'function') {
+  console.error('[PersiaSSH] addon-fit bundle failed to load.');
+}
 
 let servers = [];
 let activeServerId = null;

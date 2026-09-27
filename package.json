@@ -14,15 +14,16 @@
     "start": "electron .",
     "dist": "electron-builder --win",
     "dist:portable": "electron-builder --win portable",
-    "test": "node test/run_tests.js"
+    "test": "node test/run_tests.js",
+    "postinstall": "node scripts/sync-vendor.js"
   },
   "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "socks": "^2.8.1",
     "ssh2": "^1.16.0"
   },
   "devDependencies": {
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/xterm": "^5.5.0",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8"
   },
@@ -48,9 +49,14 @@
       "perMachine": false,
       "shortcutName": "PersiaSSH"
     },
+    "asarUnpack": [
+      "node_modules/ssh2/**/*",
+      "node_modules/socks/**/*"
+    ],
     "files": [
       "src/**/*",
       "renderer/**/*",
+      "scripts/**/*",
       "node_modules/**/*",
       "package.json",
       "start.bat"
