@@ -12,10 +12,47 @@ if (typeof FitAddon !== 'function') {
 let servers = [];
 let activeServerId = null;
 let editingId = null;
+let secretsWarned = false;
 const tabs = new Map(); // id -> { terminal, fit, sessionId, pane, serverId, status }
 let activeTabId = null;
 let tabSeq = 0;
 let pendingProxyFocus = null;
+
+// Tab navigation history — right-click walks it backward, like a browser's back button.
+let tabHistory = [];
+let navPointer = -1;
+let suppressHistory = false;
+
+function historyActivate(id) {
+  if (suppressHistory || !id) return;
+  // truncate any "forward" entries, then append
+  tabHistory = tabHistory.slice(0, navPointer + 1);
+  if (tabHistory[tabHistory.length - 1] === id) return;
+  tabHistory.push(id);
+  navPointer = tabHistory.length - 1;
+}
+
+function historyBack() {
+  if (navPointer <= 0) return false; // nothing before the current tab
+  navPointer--;
+  const target = tabHistory[navPointer];
+  if (!tabs.has(target)) return historyBack(); // tab vanished; keep walking back
+  suppressHistory = true;
+  try {
+    activateTab(target);
+  } finally {
+    suppressHistory = false;
+  }
+  return true;
+}
+
+function historyRemove(id) {
+  const idx = tabHistory.indexOf(id);
+  if (idx < 0) return;
+  tabHistory.splice(idx, 1);
+  if (navPointer >= tabHistory.length) navPointer = tabHistory.length - 1;
+  if (navPointer < -1) navPointer = -1;
+}
 
 // Persian digits for the sidebar counter
 const faNum = (n) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
@@ -36,6 +73,19 @@ function toast(message, type = 'info') {
 async function loadServers() {
   servers = await window.api.listServers();
   renderServers();
+  // warn once per boot if stored secrets can no longer be read (app moved,
+  // Windows account changed, ...) so the user re-enters passwords instead of
+  // seeing confusing "authentication failed" errors from empty passwords
+  if (!secretsWarned) {
+    secretsWarned = true;
+    const ok = await window.api.secretsOk();
+    if (!ok) {
+      toast(
+        'رمزهای ذخیره‌شده قابل خواندن نیستند (مثلاً به‌خاطر تغییر نسخه یا کاربر ویندوز). لطفاً سرورها را ویرایش و رمزها را دوباره وارد کنید.',
+        'error'
+      );
+    }
+  }
 }
 
 function renderServers() {
@@ -302,6 +352,13 @@ function openTerminalTab(serverId) {
   const server = servers.find((s) => s.id === serverId);
   if (!server) return;
 
+  // One tab per server: focus the existing one instead of opening a duplicate.
+  const existing = [...tabs.values()].find((t) => t.serverId === serverId);
+  if (existing) {
+    activateTab(existing.id);
+    return;
+  }
+
   ensureTabBar();
   const id = `tab-${++tabSeq}`;
   const pane = document.createElement('div');
@@ -388,6 +445,7 @@ function renderTabs() {
 
 function activateTab(id) {
   activeTabId = id;
+  historyActivate(id);
   for (const [tid, tab] of tabs) {
     tab.pane.classList.toggle('active', tid === id);
   }
@@ -416,9 +474,12 @@ async function closeTab(id) {
   tab.terminal.dispose();
   tab.pane.remove();
   tabs.delete(id);
+  historyRemove(id);
 
   const remaining = [...tabs.keys()];
   if (!remaining.length) {
+    tabHistory = [];
+    navPointer = -1;
     $('#tabBar').classList.add('hidden');
     $('#welcome')?.classList.remove('hidden');
     activeTabId = null;
@@ -521,6 +582,12 @@ $('#btnTest').addEventListener('click', async () => {
 $('#btnNewTab').addEventListener('click', () => {
   if (activeServerId) openTerminalTab(activeServerId);
   else toast('ابتدا یک سرور انتخاب کنید');
+});
+
+// right-click anywhere in the terminal area = back through tab history
+$('#terminalArea').addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (!historyBack()) toast('تب قبلی وجود ندارد');
 });
 
 window.addEventListener('resize', () => {

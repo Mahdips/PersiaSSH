@@ -41,6 +41,7 @@ function testConnection(server) {
 function register({ getMainWindow }) {
   // ---------------- servers ----------------
   ipcMain.handle('servers:list', () => store.listSafe());
+  ipcMain.handle('servers:secrets-ok', () => !store.hasOrphanedSecrets());
   ipcMain.handle('servers:save', (_e, server) => {
     const saved = store.upsert(server);
     getMainWindow()?.webContents.send('servers:changed');

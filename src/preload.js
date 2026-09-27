@@ -7,6 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const api = {
   // ---------- servers (encrypted store) ----------
   listServers: () => ipcRenderer.invoke('servers:list'),
+  secretsOk: () => ipcRenderer.invoke('servers:secrets-ok'),
   saveServer: (server) => ipcRenderer.invoke('servers:save', server),
   deleteServer: (id) => ipcRenderer.invoke('servers:delete', id),
   testServer: (server) => ipcRenderer.invoke('servers:test', server),

@@ -103,8 +103,39 @@ function decrypt(payload) {
     decipher.setAuthTag(Buffer.from(tagB, 'base64'));
     return Buffer.concat([decipher.update(Buffer.from(encB, 'base64')), decipher.final()]).toString('utf8');
   } catch (err) {
+    // The master key no longer matches this ciphertext. This happens when the
+    // app was previously run under a different executable name (Windows DPAPI
+    // ties safeStorage encryption to the app identity) or on a different user
+    // account. The old secrets are unrecoverable — tell the caller instead of
+    // silently returning an empty password that looks like a valid auth attempt.
     console.error('decrypt failed:', err.message);
     return '';
+  }
+}
+
+/**
+ * True when a stored password exists but cannot be decrypted with the current
+ * master key (e.g. the app's executable name or Windows account changed).
+ * Callers surface this so the user re-enters the credential instead of
+ * silently sending an empty password to the server.
+ */
+function hasOrphanedSecrets() {
+  const key = masterKey || loadOrCreateMasterKey();
+  try {
+    const all = readAll();
+    for (const s of all) {
+      if (!s.password) continue;
+      const [ivB, encB, tagB] = String(s.password).split(':');
+      if (!ivB || !encB || !tagB) continue;
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivB, 'base64'));
+      decipher.setAuthTag(Buffer.from(tagB, 'base64'));
+      decipher.update(Buffer.from(encB, 'base64'));
+      decipher.final();
+    }
+    return false; // every stored secret decrypts fine
+  } catch {
+    // decryption threw => current key cannot read the stored secrets
+    return true;
   }
 }
 
@@ -187,4 +218,5 @@ module.exports = {
     const s = readAll().find((x) => x.id === id);
     return s?.password ? decrypt(s.password) : '';
   },
+  hasOrphanedSecrets,
 };

@@ -4,30 +4,59 @@ const { Client } = require('ssh2');
 const { connectViaProxy } = require('./proxy');
 const store = require('./store');
 
-const conns = new Map(); // serverId -> { sftp, conn }
-const idToServer = new Map(); // connId -> serverId
+// Each (serverId) owns exactly one connection; in-flight connect calls share
+// the same promise so rapid clicks cannot open duplicate channels.
+const conns = new Map(); // serverId -> { sftp, conn, sids:Set, connecting:Promise }
+const idToServer = new Map(); // sid -> serverId
 
 /** A *session* id maps to an SFTP channel bound to that server. */
 function connect(serverId) {
-  return new Promise((resolve, reject) => {
-    // reuse a live connection if we already have one for this server
-    const existingSid = [...idToServer.entries()].find(([, s]) => s === serverId);
-    if (existingSid && conns.get(serverId)?.sftp) return resolve(existingSid[0]);
+  const existing = conns.get(serverId);
+  // reuse a live connection, or an in-flight one, for this server
+  if (existing?.sftp) {
+    const sid = `ftp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    existing.sids.add(sid);
+    idToServer.set(sid, serverId);
+    return Promise.resolve(sid);
+  }
+  if (existing?.connecting) return existing.connecting;
 
-    const server = store.get(serverId);
-    if (!server) return reject(new Error('سرور یافت نشد'));
+  const server = store.get(serverId);
+  if (!server) return Promise.reject(new Error('سرور یافت نشد'));
 
+  const slot = { sftp: null, conn: null, sids: new Set(), connecting: null };
+  conns.set(serverId, slot);
+
+  const p = new Promise((resolve, reject) => {
     const conn = new Client();
+    slot.conn = conn;
     conn.on('ready', () => {
       conn.sftp((err, sftp) => {
-        if (err) return reject(err);
+        if (err) {
+          conns.delete(serverId);
+          return reject(err);
+        }
+        slot.sftp = sftp;
+        slot.connecting = null;
         const sid = `ftp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        conns.set(serverId, { sftp, conn });
+        slot.sids.add(sid);
         idToServer.set(sid, serverId);
         resolve(sid);
       });
     });
-    conn.on('error', (err) => reject(err));
+    // late socket errors (after ready) must not become unhandled rejections
+    conn.on('error', (err) => {
+      if (!slot.sftp) {
+        conns.delete(serverId);
+        reject(err);
+      }
+    });
+    conn.on('close', () => {
+      for (const sid of [...slot.sids]) idToServer.delete(sid);
+      slot.sids.clear();
+      slot.sftp = null;
+      if (conns.get(serverId) === slot) conns.delete(serverId);
+    });
 
     connectViaProxy(server.host, server.port || 22, server.proxy)
       .then((sock) =>
@@ -41,8 +70,13 @@ function connect(serverId) {
           keepaliveInterval: 15000,
         })
       )
-      .catch((e) => reject(e));
+      .catch((e) => {
+        conns.delete(serverId);
+        reject(e);
+      });
   });
+  slot.connecting = p;
+  return p;
 }
 
 function getSftp(sid) {
@@ -272,18 +306,22 @@ function close(sid) {
   const serverId = idToServer.get(sid);
   if (!serverId) return;
   const entry = conns.get(serverId);
+  idToServer.delete(sid);
+  if (!entry) return;
+  entry.sids.delete(sid);
+  // only tear the connection down when no session references it anymore
+  if (entry.sids.size) return;
   try {
-    entry?.sftp?.end();
+    entry.sftp?.end();
   } catch {
     /* noop */
   }
   try {
-    entry?.conn?.end();
+    entry.conn?.end();
   } catch {
     /* noop */
   }
   conns.delete(serverId);
-  idToServer.delete(sid);
 }
 
 function closeAll() {
