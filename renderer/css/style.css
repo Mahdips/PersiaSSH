@@ -124,6 +124,67 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ---- icon picker in the server form ---- */
+.form-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.form-icon-row input { flex: 1; }
+
+.icon-picker {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 9px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.icon-picker:hover {
+  border-color: var(--accent);
+  transform: scale(1.08);
+}
+.icon-picker .ip-preview {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.icon-pop {
+  position: fixed;
+  z-index: 200;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  max-width: 250px;
+}
+.icon-pop button {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 17px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.12s;
+}
+.icon-pop button:hover {
+  background: var(--accent-soft);
+  transform: scale(1.18);
+}
+
 .server-meta {
   flex: 1;
   min-width: 0;
@@ -278,7 +339,11 @@ html, body {
   white-space: nowrap;
   position: relative;
   direction: rtl;
+  user-select: none;
+  -webkit-user-select: none;
 }
+
+.tab::selection { background: transparent; }
 
 .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
 

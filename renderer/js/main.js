@@ -112,7 +112,7 @@ function renderServers() {
       : '';
 
     item.innerHTML = `
-      <div class="server-icon">▣</div>
+      <div class="server-icon">${escapeHtml(s.icon || '▣')}</div>
       <div class="server-meta">
         <div class="server-name">${escapeHtml(s.name || s.host)}</div>
         <div class="server-host">${escapeHtml(s.host)}${proxyTag}</div>
@@ -203,9 +203,55 @@ function openSftp(id) {
 }
 
 // ---------------- modal ----------------
+// ---- server icon picker ----
+// a fixed palette of emoji/glyphs the user can pick per server
+const SERVER_ICONS = [
+  '▣', '🖥️', '🌍', '🚀', '⚡', '🛡️',
+  '🌐', '🔗', '💻', '🗄️', '🐧', '🔒',
+  '📡', '🌙', '⭐', '🎮', '☁️', '🐳',
+  '🔥', '🍀', '🎯', '🧩', '💡', '🧊',
+];
+let chosenIcon = null;
+
+function renderIconPicker() {
+  const btn = $('#fIconButton');
+  if (!btn) return;
+  btn.innerHTML = `<span class="ip-preview">${chosenIcon || '▣'}</span>`;
+}
+
+function closeIconPop() {
+  document.querySelectorAll('.icon-pop').forEach((p) => p.remove());
+}
+
+function openIconPop() {
+  closeIconPop();
+  const btn = $('#fIconButton');
+  const r = btn.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'icon-pop';
+  pop.style.left = `${Math.min(r.left, window.innerWidth - 260)}px`;
+  pop.style.top = `${Math.max(8, r.bottom + 6)}px`;
+  for (const ic of SERVER_ICONS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = ic;
+    b.title = ic;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      chosenIcon = ic;
+      renderIconPicker();
+      closeIconPop();
+    });
+    pop.appendChild(b);
+  }
+  document.body.appendChild(pop);
+}
+
 function openModal(id = null) {
   editingId = id;
   const s = id ? servers.find((x) => x.id === id) : null;
+  chosenIcon = s?.icon || null;
+  renderIconPicker();
   $('#modalTitle').textContent = s ? 'ویرایش سرور' : 'سرور جدید';
   $('#fName').value = s?.name || '';
   $('#fHost').value = s?.host || '';
@@ -225,6 +271,7 @@ function openModal(id = null) {
 
 function closeModal() {
   $('#modalOverlay').classList.add('hidden');
+  closeIconPop();
   editingId = null;
 }
 
@@ -234,6 +281,7 @@ function readForm() {
   return {
     id: editingId || undefined,
     name: $('#fName').value.trim(),
+    icon: chosenIcon || '▣',
     host: $('#fHost').value.trim(),
     port: Number($('#fPort').value) || 22,
     username: $('#fUser').value.trim() || 'root',
@@ -382,6 +430,9 @@ function openTerminalTab(serverId) {
 
   const tab = { id, terminal, fit, pane, serverId, sessionId: null, status: 'connecting' };
   tabs.set(id, tab);
+  // expose for diagnostics (test/cdp_*)
+  if (!window.__tabs) window.__tabs = tabs;
+  window.__activeTerminal = terminal;
   renderTabs();
   activateTab(id);
 
@@ -399,11 +450,11 @@ function openTerminalTab(serverId) {
   terminal.onData((data) => {
     if (tab.sessionId) window.api.inputSession(tab.sessionId, data);
   });
-
   // selecting text copies it to the clipboard automatically
   terminal.onSelectionChange(() => {
     const sel = terminal.getSelection();
     if (sel) {
+      window.__lastCopiedText = sel;
       navigator.clipboard?.writeText(sel).catch(() => {});
     }
   });
@@ -429,6 +480,10 @@ function renderTabs() {
       <span class="tab-status ${tab.status === 'connected' ? 'connected' : tab.status === 'error' ? 'error' : ''}"></span>
       <span class="tab-name">${escapeHtml(server?.name || server?.host || 'ترمینال')}</span>
     `;
+    el.addEventListener('mousedown', (e) => {
+      // switching tabs must never start a text selection
+      if (e.button === 0) e.preventDefault();
+    });
     el.addEventListener('click', (e) => {
       if (e.target.closest('.tab-close')) {
         closeTab(id);
@@ -452,11 +507,19 @@ function activateTab(id) {
   renderTabs();
   const tab = tabs.get(id);
   if (tab) {
+    // Refit twice: once now, once after the pane becomes visible. A pane
+    // that was display:none measures zero rows until the browser lays it
+    // out, so a single fit() crops the bottom of the terminal.
+    tab.fit.fit();
     setTimeout(() => {
       tab.fit.fit();
-      // focus the terminal so typing works immediately
+      tab.terminal.scrollToBottom();
       tab.terminal.focus();
     }, 30);
+    setTimeout(() => {
+      tab.fit.fit();
+      tab.terminal.scrollToBottom();
+    }, 120);
   }
 }
 
@@ -517,6 +580,15 @@ window.api.onServersChanged(loadServers);
 $('#btnNewServer').addEventListener('click', () => openModal());
 $('#modalClose').addEventListener('click', closeModal);
 $('#btnCancel').addEventListener('click', closeModal);
+$('#fIconButton').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = !!document.querySelector('.icon-pop');
+  if (open) closeIconPop();
+  else openIconPop();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.icon-pop') && !e.target.closest('#fIconButton')) closeIconPop();
+});
 $('#modalOverlay').addEventListener('click', (e) => {
   if (e.target === $('#modalOverlay')) closeModal();
 });
@@ -584,8 +656,26 @@ $('#btnNewTab').addEventListener('click', () => {
   else toast('ابتدا یک سرور انتخاب کنید');
 });
 
-// right-click anywhere in the terminal area = back through tab history
+// right-click anywhere in the terminal area pastes from the clipboard
+// (a terminal's most common action); back-navigation moves to the tab bar
 $('#terminalArea').addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const tab = tabs.get(activeTabId);
+  if (!tab) return;
+  // xterm's own contextmenu handler focuses its hidden textarea; the
+  // clipboard read resolves asynchronously, so paste as soon as we have it
+  const doPaste = (text) => {
+    if (text) tab.terminal.paste(text);
+  };
+  if (navigator.clipboard?.readText) {
+    navigator.clipboard.readText().then(doPaste, () => doPaste(window.__lastCopiedText));
+  } else {
+    doPaste(window.__lastCopiedText);
+  }
+});
+
+$('#tabs').addEventListener('contextmenu', (e) => {
+  // right-click on the tab bar still walks back through history
   e.preventDefault();
   if (!historyBack()) toast('تب قبلی وجود ندارد');
 });
