@@ -478,6 +478,7 @@ function renderTabs() {
         <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
       </span>
       <span class="tab-status ${tab.status === 'connected' ? 'connected' : tab.status === 'error' ? 'error' : ''}"></span>
+      <span class="tab-icon">${escapeHtml(server?.icon || '▣')}</span>
       <span class="tab-name">${escapeHtml(server?.name || server?.host || 'ترمینال')}</span>
     `;
     el.addEventListener('mousedown', (e) => {

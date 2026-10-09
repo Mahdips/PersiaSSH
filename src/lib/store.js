@@ -148,6 +148,15 @@ function readAll() {
   } catch {
     cache = [];
   }
+  // backfill the icon field on servers saved before it existed
+  let dirty = false;
+  for (const s of cache) {
+    if (!s.icon) {
+      s.icon = '▣';
+      dirty = true;
+    }
+  }
+  if (dirty) writeAll(cache);
   return cache;
 }
 
@@ -163,6 +172,7 @@ function withDefaults(server) {
   return {
     id: server.id || randomBytes(12),
     name: server.name || '',
+    icon: server.icon || '▣',
     host: server.host || '',
     port: server.port || 22,
     username: server.username || 'root',

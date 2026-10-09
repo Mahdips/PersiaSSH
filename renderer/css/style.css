@@ -120,8 +120,10 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   flex-shrink: 0;
+  /* emoji needs a color-emoji font; the UI font stack has none */
+  font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 
 /* ---- icon picker in the server form ---- */
@@ -155,6 +157,7 @@ html, body {
 .icon-picker .ip-preview {
   font-size: 17px;
   line-height: 1;
+  font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
 }
 
 .icon-pop {
@@ -178,6 +181,7 @@ html, body {
   border-radius: 8px;
   font-size: 17px;
   cursor: pointer;
+  font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
   transition: background 0.12s, transform 0.12s;
 }
 .icon-pop button:hover {
@@ -346,6 +350,16 @@ html, body {
 .tab::selection { background: transparent; }
 
 .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+
+.tab-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  /* emoji needs a color-emoji font; the UI font stack has none */
+  font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 .tab.active {
   color: var(--text);
