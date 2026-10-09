@@ -266,7 +266,12 @@ function openModal(id = null) {
   $('#fProxyPass').value = '';
   $('#formError').textContent = '';
   $('#modalOverlay').classList.remove('hidden');
+  // xterm re-focuses its hidden textarea on any document focus event and
+  // would swallow typing; blur it so the input keeps the focus
+  tabs.forEach((t) => t.terminal.blur());
   setTimeout(() => $('#fName').focus(), 50);
+  setTimeout(() => $('#fName').focus(), 150);
+  setTimeout(() => $('#fName').focus(), 300);
 }
 
 function closeModal() {
@@ -515,7 +520,10 @@ function activateTab(id) {
     setTimeout(() => {
       tab.fit.fit();
       tab.terminal.scrollToBottom();
-      tab.terminal.focus();
+      // do not steal focus while a modal dialog is open
+      if (document.querySelector('#modalOverlay')?.classList.contains('hidden')) {
+        tab.terminal.focus();
+      }
     }, 30);
     setTimeout(() => {
       tab.fit.fit();
