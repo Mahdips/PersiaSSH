@@ -21,6 +21,32 @@
 
 ![سفارشی‌سازی](https://img.shields.io/badge/رابط-فارسی_راست‌چین-blue) ![پلتفرم](https://img.shields.io/badge/پلتفرم-ویندوز-success) ![لایسنس](https://img.shields.io/badge/لایسنس-MIT-green) ![نسخه](https://img.shields.io/badge/نسخه-1.1.0-blue)
 
+## تصاویر برنامه
+
+<p align="center">
+  <img src="screenshots/01-servers.png" alt="لیست سرورها" width="460" />
+  <br/>
+  <sub>لیست سرورها با چند سرور ذخیره‌شده و تب ترمینال متصل</sub>
+</p>
+
+<p align="center">
+  <img src="screenshots/02-terminal.png" alt="ترمینال" width="460" />
+  <br/>
+  <sub>ترمینال چندزبانه با خروجی دستورات</sub>
+</p>
+
+<p align="center">
+  <img src="screenshots/03-new-server.png" alt="افزودن سرور" width="460" />
+  <br/>
+  <sub>فرم افزودن سرور جدید</sub>
+</p>
+
+<p align="center">
+  <img src="screenshots/04-icon-picker.png" alt="انتخاب آیکون" width="460" />
+  <br/>
+  <sub>انتخاب آیکون برای هر سرور</sub>
+</p>
+
 ## امکانات
 
 - **چند تب همزمان** — اتصال به چند سرور در یک پنجره، هر کدام یک زبانه‌ی ترمینال مستقل (xterm.js)
