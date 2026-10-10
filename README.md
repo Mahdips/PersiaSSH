@@ -24,27 +24,15 @@
 ## تصاویر برنامه
 
 <p align="center">
-  <img src="screenshots/01-servers.png" alt="لیست سرورها" width="460" />
+  <img src="screenshots/02-terminal.png" alt="ترمینال" width="780" />
   <br/>
-  <sub>لیست سرورها با چند سرور ذخیره‌شده و تب ترمینال متصل</sub>
+  <sub>ترمینال چندزبانه با چند سرور ذخیره‌شده</sub>
 </p>
 
 <p align="center">
-  <img src="screenshots/02-terminal.png" alt="ترمینال" width="460" />
+  <img src="screenshots/04-icon-picker.png" alt="افزودن سرور و انتخاب آیکون" width="780" />
   <br/>
-  <sub>ترمینال چندزبانه با خروجی دستورات</sub>
-</p>
-
-<p align="center">
-  <img src="screenshots/03-new-server.png" alt="افزودن سرور" width="460" />
-  <br/>
-  <sub>فرم افزودن سرور جدید</sub>
-</p>
-
-<p align="center">
-  <img src="screenshots/04-icon-picker.png" alt="انتخاب آیکون" width="460" />
-  <br/>
-  <sub>انتخاب آیکون برای هر سرور</sub>
+  <sub>فرم افزودن سرور جدید با انتخابگر آیکون</sub>
 </p>
 
 ## امکانات
